@@ -3,7 +3,7 @@ import platform
 import subprocess
 import sys
 import shutil
-from typing import Tuple, Optional, List, Dict
+from typing import Tuple, Optional, List
 
 MULTI_PACKAGE_COMMANDS = {
     'install': 'Installing',
@@ -144,7 +144,7 @@ def parse_upgrade_list() -> List[str]:
         print(f"Error parsing upgrade list: {str(e)}")
         return []
 
-def handle_multi_package(packages: List[str], command: str, output_path: Optional[str] = None) -> int:
+def handle_multi_package(packages: List[str], command: str, output_path: Optional[str] = None, archive: bool = False) -> int:
     """
     Handle processing of multiple packages sequentially.
     
@@ -152,13 +152,13 @@ def handle_multi_package(packages: List[str], command: str, output_path: Optiona
         packages: List of package IDs to process
         command: The command to use (install/upgrade/download)
         output_path: Optional path for downloaded files
+        archive: Boolean indicating whether to archive downloaded files
         
     Returns:
         int: 0 if all operations succeeded, 1 if any failed
     """
     total_packages = len(packages)
     failed_packages = []
-    action = MULTI_PACKAGE_COMMANDS[command]
     
     # Convert output path to absolute if specified
     if output_path:
@@ -172,18 +172,34 @@ def handle_multi_package(packages: List[str], command: str, output_path: Optiona
         
         if result != 0:
             failed_packages.append(package)
-        elif command == 'download' and output_path:
-            # Try to find and move the downloaded files
+        elif command == 'download':
             download_folder = find_latest_download(package)
             if download_folder:
-                target_folder = os.path.join(output_path, os.path.basename(download_folder))
-                try:
-                    if os.path.exists(target_folder):
+                # If output_path is specified, move the folder; otherwise, use the download folder directly
+                if output_path:
+                    target_folder = os.path.join(output_path, os.path.basename(download_folder))
+                    try:
+                        if os.path.exists(target_folder):
+                            shutil.rmtree(target_folder)
+                        shutil.move(download_folder, target_folder)
+                        print(f"Installer moved: {target_folder}")
+                    except Exception as e:
+                        failed_packages.append(package)
+                else:
+                    target_folder = download_folder
+                
+                # Archive the folder if the archive option is set
+                if archive:
+                    print(f"Attempting to archive installer: {target_folder}")  # Winget-style output with folder
+                    archive_folder = f"{target_folder}.zip"
+                    try:
+                        shutil.make_archive(archive_folder[:-4], 'zip', target_folder)
+                        print(f"Archived installer: {archive_folder}")  # Winget-style output with archive path
+                        # Remove the original folder after successful archiving
                         shutil.rmtree(target_folder)
-                    shutil.move(download_folder, target_folder)
-                    print(f"Installer moved: {target_folder}")
-                except Exception as e:
-                    failed_packages.append(package)
+                    except Exception as e:
+                        print(f"Error during archiving or cleanup: {str(e)}")  # Debugging output
+                        failed_packages.append(package)
             else:
                 failed_packages.append(package)
     
@@ -200,14 +216,18 @@ def show_help():
     print("weget - winget enhancement wrapper")
     print("\nFeatures:")
     print("  • Multi-package operations")
-    print("  • Custom download paths (-o, --output)")
-    print("  • Upgrade all packages (-a, --all)")
+    print("  • Custom download paths (-o, --output)          | \"weget download\" exclusive")
+    print("  • Archive downloaded installers (-a, --archive) | \"weget download\" exclusive")
+    print("  • Upgrade all packages (-a, --all)              | \"weget upgrade\" exclusive")
     print("\nExamples:")
     print("  weget install pkg1 pkg2 pkg3")
     print("  weget download pkg1 -o C:\\path\\to\\dir")
+    print("  weget download pkg1 -a")
     print("  weget upgrade -a")
+    print("\nInfo:")
+    print("  To get winget help, type \"weget -h\" or other common help argument.")
 
-def parse_args() -> Tuple[str, List[str], Optional[str], bool]:
+def parse_args() -> Tuple[str, List[str], Optional[str], bool, bool]:
     """Parse command line arguments in a simple way."""
     if len(sys.argv) < 2:
         show_help()
@@ -218,6 +238,7 @@ def parse_args() -> Tuple[str, List[str], Optional[str], bool]:
     output_path = None
     packages = []
     upgrade_all = False
+    archive_download = False  # New variable to track archive option
     
     # Look for -o/--output and -a/--all options
     i = 1
@@ -232,11 +253,14 @@ def parse_args() -> Tuple[str, List[str], Optional[str], bool]:
         elif args[i] in ['-a', '--all'] and command == 'upgrade':
             upgrade_all = True
             i += 1
+        elif args[i] in ['-a', '--archive'] and command == 'download':
+            archive_download = True  # New variable to track archive option
+            i += 1
         else:
             packages.append(args[i])
             i += 1
             
-    return command, packages, output_path, upgrade_all
+    return command, packages, output_path, upgrade_all, archive_download
 
 def main():
     """Main entry point for the application."""
@@ -246,7 +270,7 @@ def main():
         print(f"Error: {error_message}")
         return 1
     
-    command, packages, output_path, upgrade_all = parse_args()
+    command, packages, output_path, upgrade_all, archive_download = parse_args()
     command = command.lower()
     
     # Handle upgrade all
@@ -263,7 +287,7 @@ def main():
         if output_path and command != 'download':
             print("Error: Output path can only be specified for the download command")
             return 1
-        return handle_multi_package(packages, command, output_path)
+        return handle_multi_package(packages, command, output_path, archive_download)
     
     # Pass all arguments directly to winget
     all_args = [command] + packages

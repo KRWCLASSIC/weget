@@ -8,7 +8,6 @@ i need to rewrite this readme btw
 
 - Multithreaded download mode?
 - interactive update mode (choose on run what to update)
-- archiving
 
 ## Building
 
