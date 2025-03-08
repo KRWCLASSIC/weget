@@ -59,12 +59,17 @@ if ($existingPaths) {
 }
 
 # Fetch the latest binary URL
-$latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
-$binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
-
-# Download `weget.exe`
-$exeDestination = "$installPath\weget.exe"
-Invoke-WebRequest -Uri $binaryUrl -OutFile $exeDestination
+try {
+    $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
+    $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
+    
+    # Download `weget.exe`
+    $exeDestination = "$installPath\weget.exe"
+    Invoke-WebRequest -Uri $binaryUrl -OutFile $exeDestination -ErrorAction Stop
+} catch {
+    Write-Host "Failed to download weget: $_" -ForegroundColor Red
+    exit 1
+}
 
 # Add to PATH (with duplicate check)
 $envPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
@@ -88,10 +93,15 @@ if (Test-Admin) {
 
 # Verify installation in background
 Write-Host "Verifying installation..." -ForegroundColor Cyan
-$version = & "$installPath\weget.exe" --version 2>&1
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Successfully installed weget version: $version" -ForegroundColor Green
-} else {
-    Write-Host "Installation verification failed" -ForegroundColor Red
+try {
+    $version = & "$installPath\weget.exe" --version 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "weget is ready to use" -ForegroundColor Green
+    } else {
+        Write-Host "Installation verification failed" -ForegroundColor Red
+        exit 1
+    }
+} catch {
+    Write-Host "Failed to verify installation: $_" -ForegroundColor Red
     exit 1
 }
