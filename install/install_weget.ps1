@@ -4,7 +4,7 @@
 # My website is redirecting traffic to github, so script is synced no matter what.
 
 # Script version
-$scriptVersion = "v0.6"
+$scriptVersion = "v0.7"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -54,6 +54,31 @@ $existingPaths = @($userPath, $adminPath) | Where-Object { Test-Path (Join-Path 
 if ($existingPaths) {
     Write-Host "weget is already installed at: $($existingPaths -join ', ')" -ForegroundColor Yellow
     $installPath = $existingPaths[0]
+    
+    # Check if already in PATH
+    $currentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Process)
+    if ($currentPath -notlike "*$installPath*") {
+        Write-Host "Adding $installPath to PATH" -ForegroundColor Green
+        [System.Environment]::SetEnvironmentVariable("Path", "$currentPath;$installPath", [System.EnvironmentVariableTarget]::Process)
+    } else {
+        Write-Host "Already in PATH" -ForegroundColor Yellow
+    }
+    
+    # Verify installation and exit
+    Write-Host "Verifying existing installation..." -ForegroundColor Cyan
+    try {
+        $version = & (Join-Path $installPath "weget.exe") --version 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "weget is ready to use" -ForegroundColor Green
+            exit 0
+        } else {
+            Write-Host "Existing installation verification failed" -ForegroundColor Red
+            exit 1
+        }
+    } catch {
+        Write-Host "Failed to verify existing installation: $_" -ForegroundColor Red
+        exit 1
+    }
 } else {
     # Create directory if not exists
     if (!(Test-Path $installPath)) {
