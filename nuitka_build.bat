@@ -15,9 +15,6 @@ python -m nuitka ^
     --windows-file-description="Winget Enhancement Tool" ^
     --windows-file-version="0.1" ^
     --windows-product-version="0.1" ^
-    --windows-legal-copyright="Open Source" ^
-    --windows-uac-admin=False ^
-    --windows-company-urls="https://github.com/KRWCLASSIC/weget" ^
     weget.py
 
 echo Build complete! Check the 'nuitka' directory for the executable.
