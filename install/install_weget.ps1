@@ -62,13 +62,26 @@ if ($existingPaths) {
     }
 }
 
+# Ensure the installation path exists
+if (!(Test-Path $installPath)) {
+    Write-Host "Failed to create installation directory: $installPath" -ForegroundColor Red
+    exit 1
+}
+
 # Fetch the latest binary URL
 try {
     $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
     $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
     
+    # Validate binary URL
+    if ([string]::IsNullOrEmpty($binaryUrl)) {
+        Write-Host "Failed to get binary URL" -ForegroundColor Red
+        exit 1
+    }
+    
     # Download `weget.exe`
     $exeDestination = Join-Path $installPath "weget.exe"
+    Write-Host "Downloading weget to: $exeDestination" -ForegroundColor Cyan
     Invoke-WebRequest -Uri $binaryUrl -OutFile $exeDestination -ErrorAction Stop
 } catch {
     Write-Host "Failed to download weget: $_" -ForegroundColor Red
