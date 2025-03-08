@@ -3,7 +3,7 @@ import platform
 import subprocess
 import sys
 import shutil
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict
 
 MULTI_PACKAGE_COMMANDS = {
     'install': 'Installing',
@@ -88,6 +88,62 @@ def run_winget(args: list) -> Tuple[int, Optional[str]]:
         print(f"Error running winget: {str(e)}")
         return 1, None
 
+def parse_upgrade_list() -> List[str]:
+    """
+    Run 'winget upgrade' and parse the output to get list of available package updates.
+    
+    Returns:
+        List[str]: List of package IDs that have updates available
+    """
+    try:
+        result = subprocess.run(
+            ["winget", "upgrade"], 
+            capture_output=True, 
+            text=True, 
+            check=False
+        )
+        
+        if result.returncode != 0:
+            print("Error getting upgrade list")
+            return []
+            
+        lines = result.stdout.split('\n')
+        packages_to_upgrade = []
+        
+        # Find the separator line to know where the table starts
+        separator_line = None
+        for i, line in enumerate(lines):
+            if '---' in line and len(line) > 20:  # Long line with dashes
+                separator_line = i
+                break
+                
+        if separator_line is None:
+            return []
+            
+        # Get header line to determine column positions
+        header_line = lines[separator_line - 1]
+        
+        # Process each line after the separator
+        for line in lines[separator_line + 1:]:
+            if not line.strip():  # Skip empty lines
+                continue
+            
+            # Try to parse fixed-width format instead of splitting by whitespace
+            if len(line) >= len(header_line):
+                # Find the position of "Id" column in header
+                id_start = header_line.find("Id")
+                version_start = header_line.find("Version")
+                if id_start != -1 and version_start != -1:
+                    package_id = line[id_start:version_start].strip()
+                    if package_id:
+                        packages_to_upgrade.append(package_id)
+                
+        return packages_to_upgrade
+        
+    except Exception as e:
+        print(f"Error parsing upgrade list: {str(e)}")
+        return []
+
 def handle_multi_package(packages: List[str], command: str, output_path: Optional[str] = None) -> int:
     """
     Handle processing of multiple packages sequentially.
@@ -145,11 +201,13 @@ def show_help():
     print("\nFeatures:")
     print("  • Multi-package operations")
     print("  • Custom download paths (-o, --output)")
+    print("  • Upgrade all packages (-a, --all)")
     print("\nExamples:")
     print("  weget install pkg1 pkg2 pkg3")
     print("  weget download pkg1 -o C:\\path\\to\\dir")
+    print("  weget upgrade -a")
 
-def parse_args() -> Tuple[str, List[str], Optional[str]]:
+def parse_args() -> Tuple[str, List[str], Optional[str], bool]:
     """Parse command line arguments in a simple way."""
     if len(sys.argv) < 2:
         show_help()
@@ -159,8 +217,9 @@ def parse_args() -> Tuple[str, List[str], Optional[str]]:
     command = args[0]
     output_path = None
     packages = []
+    upgrade_all = False
     
-    # Look for -o/--output option
+    # Look for -o/--output and -a/--all options
     i = 1
     while i < len(args):
         if args[i] in ['-o', '--output']:
@@ -170,11 +229,14 @@ def parse_args() -> Tuple[str, List[str], Optional[str]]:
             else:
                 print("Error: Output path not specified after -o/--output")
                 sys.exit(1)
+        elif args[i] in ['-a', '--all'] and command == 'upgrade':
+            upgrade_all = True
+            i += 1
         else:
             packages.append(args[i])
             i += 1
             
-    return command, packages, output_path
+    return command, packages, output_path, upgrade_all
 
 def main():
     """Main entry point for the application."""
@@ -184,8 +246,16 @@ def main():
         print(f"Error: {error_message}")
         return 1
     
-    command, packages, output_path = parse_args()
+    command, packages, output_path, upgrade_all = parse_args()
     command = command.lower()
+    
+    # Handle upgrade all
+    if command == 'upgrade' and upgrade_all:
+        packages = parse_upgrade_list()
+        if not packages:
+            print("No packages to upgrade")
+            return 0
+        print(f"Found {len(packages)} packages to upgrade")
     
     # Check for multi-package commands
     if command in MULTI_PACKAGE_COMMANDS and packages:
