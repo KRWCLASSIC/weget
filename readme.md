@@ -3,3 +3,16 @@
 Weget is winget wrapper with support with multidownload, output paths and much more!
 
 i need to rewrite this readme btw
+
+## Building
+
+Required:
+
+- Python (Preferably 3.11.x).
+- Nuitka (and non-included packages used in `weget.py`).
+- MSVC 2022 (Build Tools).
+- Windows 10 or higher.
+
+Make sure you exclude project folder from Microsoft Defender (Or other antiviruses)!
+
+Run `nuitka_build.bat` and wait, if failed try again or smth, if doesn't work try chatgpt :sob:.

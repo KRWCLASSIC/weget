@@ -12,8 +12,12 @@ python -m nuitka ^
     --output-dir=nuitka ^
     --windows-company-name="KRW CLASSIC" ^
     --windows-product-name="Weget" ^
-    --windows-file-description="Winget Enhancement Wrapper" ^
+    --windows-file-description="Winget Enhancement Tool" ^
     --windows-file-version="0.1" ^
+    --windows-product-version="0.1" ^
+    --windows-legal-copyright="Open Source" ^
+    --windows-uac-admin=False ^
+    --windows-company-urls="https://github.com/KRWCLASSIC/weget" ^
     weget.py
 
 echo Build complete! Check the 'nuitka' directory for the executable.
