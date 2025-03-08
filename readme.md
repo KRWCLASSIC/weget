@@ -15,6 +15,7 @@ i need to rewrite this readme btw
 - Multithreaded download/install/upgrade?
 - interactive update mode (choose on run what to update)
 - repo-based updates (simillar to Clink)
+- add weget to path function yes
 
 ## Building
 
