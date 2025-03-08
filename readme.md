@@ -5,13 +5,14 @@ Weget is winget wrapper with support with multidownload, output paths and much m
 i need to rewrite this readme btw
 
 ## Features
+
 - fill later lol, and make this img smaller fr \/
 
 ![weget help preview](https://github.com/user-attachments/assets/e48391c8-1a53-4df1-911c-c56102e39d3a)
 
 ## TODO
 
-- Multithreaded download mode?
+- Multithreaded download/install/upgrade?
 - interactive update mode (choose on run what to update)
 - repo-based updates (simillar to Clink)
 
