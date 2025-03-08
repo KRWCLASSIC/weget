@@ -3,9 +3,13 @@
 # Simple script that will install weget as system or user (depending on permissions) and add it to path.
 # My website is redirecting traffic to github, so script is synced no matter what.
 
+# Script version
+$scriptVersion = "v0.4"
+Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
+
 # Define installation paths
-$userPath = "$env:APPDATA\KRWCLASSIC\weget"
-$adminPath = "${env:ProgramFiles}\KRWCLASSIC\weget"
+$userPath = Join-Path $env:APPDATA "KRWCLASSIC\weget"
+$adminPath = Join-Path ${env:ProgramFiles} "KRWCLASSIC\weget"
 $installPath = ""
 
 # Function to check admin privileges
@@ -46,7 +50,7 @@ if (Test-Admin) {
 }
 
 # Check if already installed in any path
-$existingPaths = @($userPath, $adminPath) | Where-Object { Test-Path "$_\weget.exe" }
+$existingPaths = @($userPath, $adminPath) | Where-Object { Test-Path (Join-Path $_ "weget.exe") }
 if ($existingPaths) {
     Write-Host "weget is already installed at: $($existingPaths -join ', ')" -ForegroundColor Yellow
     $installPath = $existingPaths[0]
@@ -64,7 +68,7 @@ try {
     $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
     
     # Download `weget.exe`
-    $exeDestination = "$installPath\weget.exe"
+    $exeDestination = Join-Path $installPath "weget.exe"
     Invoke-WebRequest -Uri $binaryUrl -OutFile $exeDestination -ErrorAction Stop
 } catch {
     Write-Host "Failed to download weget: $_" -ForegroundColor Red
@@ -94,7 +98,7 @@ if (Test-Admin) {
 # Verify installation in background
 Write-Host "Verifying installation..." -ForegroundColor Cyan
 try {
-    $version = & "$installPath\weget.exe" --version 2>&1
+    $version = & (Join-Path $installPath "weget.exe") --version 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "weget is ready to use" -ForegroundColor Green
     } else {
