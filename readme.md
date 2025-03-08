@@ -4,6 +4,10 @@ Weget is winget wrapper with support with multidownload, output paths and much m
 
 i need to rewrite this readme btw
 
+## Instalation
+
+Open powershell and execute `iwr weget.krwclassic.com | iex`
+
 ## Features
 
 - fill later lol, and make this img smaller fr \/

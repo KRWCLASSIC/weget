@@ -15,16 +15,47 @@ function Test-Admin {
     return $prp.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+# Check for cross-permission installations
+if (Test-Admin) {
+    # If running as admin, check user installation
+    if (Test-Path "$userPath\weget.exe") {
+        Write-Host "Warning: weget is already installed for current user at $userPath" -ForegroundColor Yellow
+    }
+    $userEnvPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    if ($userEnvPath -like "*$userPath*") {
+        Write-Host "Warning: weget is already in user PATH" -ForegroundColor Yellow
+    }
+} else {
+    # If running as user, check system installation
+    if (Test-Path "$adminPath\weget.exe") {
+        Write-Host "Warning: weget is already installed system-wide at $adminPath" -ForegroundColor Yellow
+    }
+    $envPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    if ($envPath -like "*$adminPath*") {
+        Write-Host "Warning: weget is already in system PATH" -ForegroundColor Yellow
+    }
+}
+
 # Choose install path
 if (Test-Admin) {
     $installPath = $adminPath
+    Write-Host "Installing weget system-wide to $installPath" -ForegroundColor Cyan
 } else {
     $installPath = $userPath
+    Write-Host "Installing weget for current user to $installPath" -ForegroundColor Cyan
 }
 
-# Create directory if not exists
-if (!(Test-Path $installPath)) {
-    New-Item -ItemType Directory -Path $installPath -Force | Out-Null
+# Check if already installed in any path
+$existingPaths = @($userPath, $adminPath) | Where-Object { Test-Path "$_\weget.exe" }
+if ($existingPaths) {
+    Write-Host "weget is already installed at: $($existingPaths -join ', ')" -ForegroundColor Yellow
+    $installPath = $existingPaths[0]
+} else {
+    # Create directory if not exists
+    if (!(Test-Path $installPath)) {
+        Write-Host "Creating installation directory: $installPath" -ForegroundColor Green
+        New-Item -ItemType Directory -Path $installPath -Force | Out-Null
+    }
 }
 
 # Fetch the latest binary URL
@@ -35,19 +66,32 @@ $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object 
 $exeDestination = "$installPath\weget.exe"
 Invoke-WebRequest -Uri $binaryUrl -OutFile $exeDestination
 
-# Add to PATH
+# Add to PATH (with duplicate check)
 $envPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 $userEnvPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
 
 if (Test-Admin) {
     if ($envPath -notlike "*$installPath*") {
+        Write-Host "Adding to system PATH" -ForegroundColor Green
         [System.Environment]::SetEnvironmentVariable("Path", "$envPath;$installPath", "Machine")
+    } else {
+        Write-Host "Already in system PATH" -ForegroundColor Yellow
     }
 } else {
     if ($userEnvPath -notlike "*$installPath*") {
+        Write-Host "Adding to user PATH" -ForegroundColor Green
         [System.Environment]::SetEnvironmentVariable("Path", "$userEnvPath;$installPath", "User")
+    } else {
+        Write-Host "Already in user PATH" -ForegroundColor Yellow
     }
 }
 
-# Verify installation
-Start-Process cmd -ArgumentList "/c weget --version & pause" -NoNewWindow -Wait
+# Verify installation in background
+Write-Host "Verifying installation..." -ForegroundColor Cyan
+$version = & "$installPath\weget.exe" --version 2>&1
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Successfully installed weget version: $version" -ForegroundColor Green
+} else {
+    Write-Host "Installation verification failed" -ForegroundColor Red
+    exit 1
+}
