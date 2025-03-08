@@ -4,7 +4,7 @@
 # My website is redirecting traffic to github, so script is synced no matter what.
 
 # Script version
-$scriptVersion = "v0.4"
+$scriptVersion = "v0.6"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -82,6 +82,13 @@ try {
     # Download `weget.exe`
     $exeDestination = Join-Path $installPath "weget.exe"
     Write-Host "Downloading weget to: $exeDestination" -ForegroundColor Cyan
+    
+    # Ensure the parent directory exists
+    $parentDir = Split-Path $exeDestination -Parent
+    if (!(Test-Path $parentDir)) {
+        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+    }
+    
     Invoke-WebRequest -Uri $binaryUrl -OutFile $exeDestination -ErrorAction Stop
 } catch {
     Write-Host "Failed to download weget: $_" -ForegroundColor Red
