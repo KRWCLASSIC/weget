@@ -4,7 +4,7 @@
 # My website is redirecting traffic to github, so script is synced no matter what.
 
 # Script version
-$scriptVersion = "v0.8"
+$scriptVersion = "v0.9"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -17,27 +17,6 @@ function Test-Admin {
     $wid = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     $prp = New-Object System.Security.Principal.WindowsPrincipal($wid)
     return $prp.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
-# Check for cross-permission installations
-if (Test-Admin) {
-    # If running as admin, check user installation
-    if (Test-Path "$userPath\weget.exe") {
-        Write-Host "Warning: weget is already installed for current user at $userPath" -ForegroundColor Yellow
-    }
-    $userEnvPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    if ($userEnvPath -like "*$userPath*") {
-        Write-Host "Warning: weget is already in user PATH" -ForegroundColor Yellow
-    }
-} else {
-    # If running as user, check system installation
-    if (Test-Path "$adminPath\weget.exe") {
-        Write-Host "Warning: weget is already installed system-wide at $adminPath" -ForegroundColor Yellow
-    }
-    $envPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    if ($envPath -like "*$adminPath*") {
-        Write-Host "Warning: weget is already in system PATH" -ForegroundColor Yellow
-    }
 }
 
 # Choose install path
