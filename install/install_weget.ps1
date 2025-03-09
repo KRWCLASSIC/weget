@@ -4,7 +4,7 @@
 # My website is redirecting traffic to github, so script is synced no matter what.
 
 # Script version
-$scriptVersion = "v0.9.1"
+$scriptVersion = "v1.0"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -126,6 +126,10 @@ try {
     $version = weget --version 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "weget is ready to use" -ForegroundColor Green
+        
+        # Start new PowerShell window and close current one
+        Start-Process powershell -NoNewWindow
+        Stop-Process -Id $PID
     } else {
         Write-Host "Installation verification failed" -ForegroundColor Red
         exit 1
