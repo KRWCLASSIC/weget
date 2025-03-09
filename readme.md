@@ -7,6 +7,7 @@ i need to rewrite this readme btw
 ## Instalation
 
 To install weget, open PowerShell and run the following command:
+
 ```Invoke-WebRequest weget.krwclassic.com | Invoke-Expression```
 
 ## Features
