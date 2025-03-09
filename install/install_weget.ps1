@@ -4,7 +4,7 @@
 # My website is redirecting traffic to github, so script is synced no matter what.
 
 # Script version
-$scriptVersion = "v0.9"
+$scriptVersion = "v0.9.1"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
