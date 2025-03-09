@@ -4,7 +4,7 @@
 # My website is redirecting traffic to github, so script is synced no matter what.
 
 # Script version
-$scriptVersion = "v1.3"
+$scriptVersion = "v1.4"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -120,6 +120,12 @@ if (Test-Admin) {
     }
 }
 
+# Refresh PATH in current session
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+
 # Final message
-Write-Host "Installation complete!" -ForegroundColor Green
-Write-Host "Please restart your terminal to apply the changes." -ForegroundColor Yellow
+Write-Host "Installation complete! weget is ready to use." -ForegroundColor Green
+
+# Keep window open
+Write-Host "Press any key to continue..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
