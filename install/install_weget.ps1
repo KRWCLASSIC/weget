@@ -4,7 +4,7 @@
 # My website is redirecting traffic to github, so script is synced no matter what.
 
 # Script version
-$scriptVersion = "v1.2"
+$scriptVersion = "v1.3"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -120,20 +120,6 @@ if (Test-Admin) {
     }
 }
 
-# Reload PATH in current session
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Process")
-
-# Verify installation in background
-Write-Host "Verifying installation..." -ForegroundColor Cyan
-try {
-    $version = weget --version 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "weget is ready to use" -ForegroundColor Green
-    } else {
-        Write-Host "Installation verification failed" -ForegroundColor Red
-        exit 1
-    }
-} catch {
-    Write-Host "Failed to verify installation: $_" -ForegroundColor Red
-    exit 1
-}
+# Final message
+Write-Host "Installation complete!" -ForegroundColor Green
+Write-Host "Please restart your terminal to apply the changes." -ForegroundColor Yellow
