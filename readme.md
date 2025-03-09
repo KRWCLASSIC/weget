@@ -8,7 +8,9 @@ i need to rewrite this readme btw
 
 To install weget, open PowerShell and run the following command:
 
-```Invoke-WebRequest weget.krwclassic.com | Invoke-Expression```
+```powershell
+iwr weget.krwclassic.com | iex
+```
 
 ## Features
 
