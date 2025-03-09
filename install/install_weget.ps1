@@ -46,9 +46,8 @@ if ($existingPaths) {
     # Verify installation and exit
     Write-Host "Verifying existing installation..." -ForegroundColor Cyan
     try {
-        $exePath = Join-Path $installPath "weget.exe"
-        Write-Host "Executing: `"$exePath`" --version" -ForegroundColor Magenta
-        $version = & "$exePath" --version 2>&1
+        Write-Host "Executing: weget --version" -ForegroundColor Magenta
+        $version = weget --version 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "weget is ready to use" -ForegroundColor Green
             exit 0
@@ -124,7 +123,7 @@ if (Test-Admin) {
 # Verify installation in background
 Write-Host "Verifying installation..." -ForegroundColor Cyan
 try {
-    $version = & (Join-Path $installPath "weget.exe") --version 2>&1
+    $version = weget --version 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "weget is ready to use" -ForegroundColor Green
     } else {
