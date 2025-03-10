@@ -12,7 +12,7 @@ function Get-FileHashValue {
 }
 
 # Script version
-$scriptVersion = "v1.5"
+$scriptVersion = "v1.5.1"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -40,7 +40,7 @@ if (Test-Admin) {
 $existingPaths = @($userPath, $adminPath) | Where-Object { Test-Path (Join-Path $_ "weget.exe") }
 if ($existingPaths) {
     Write-Host "weget is already installed at: $($existingPaths -join ', ')" -ForegroundColor Yellow
-    $installPath = $existingPaths[0]
+    $installPath = $existingPaths[0]  # Use the first found path
     
     # Check if already in PATH
     $currentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Process)
@@ -54,11 +54,18 @@ if ($existingPaths) {
     # Verify installation and check hash
     Write-Host "Verifying existing installation..." -ForegroundColor Cyan
     try {
+        # Ensure the path to weget.exe is valid
+        $wegetExePath = Join-Path $installPath "weget.exe"
+        if (-Not (Test-Path $wegetExePath)) {
+            Write-Host "weget.exe not found at $wegetExePath" -ForegroundColor Red
+            exit 1
+        }
+
         Write-Host "Executing: weget --version" -ForegroundColor Magenta
-        $version = weget --version 2>&1
+        $version = & $wegetExePath --version 2>&1  # Use call operator to execute
         if ($LASTEXITCODE -eq 0) {
             # Calculate hash of existing binary
-            $existingHash = Get-FileHashValue (Join-Path $installPath "weget.exe")
+            $existingHash = Get-FileHashValue $wegetExePath
             
             # Fetch the latest binary URL and calculate its hash
             $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
@@ -74,7 +81,7 @@ if ($existingPaths) {
             # Compare hashes
             if ($existingHash -ne $newHash) {
                 Write-Host "New version detected. Updating weget..." -ForegroundColor Green
-                Move-Item -Path $tempExeDestination -Destination (Join-Path $installPath "weget.exe") -Force
+                Move-Item -Path $tempExeDestination -Destination $wegetExePath -Force
             } else {
                 Write-Host "Existing installation is up to date." -ForegroundColor Green
                 Remove-Item $tempExeDestination -Force
