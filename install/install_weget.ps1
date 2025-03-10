@@ -3,8 +3,16 @@
 # Simple script that will install weget as system or user (depending on permissions) and add it to path.
 # My website is redirecting traffic to github, so script is synced no matter what.
 
+# Add a function to calculate the hash of a file
+function Get-FileHashValue {
+    param (
+        [string]$filePath
+    )
+    return (Get-FileHash -Path $filePath -Algorithm SHA256).Hash
+}
+
 # Script version
-$scriptVersion = "v1.4"
+$scriptVersion = "v1.5"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 
 # Define installation paths
@@ -43,14 +51,35 @@ if ($existingPaths) {
         Write-Host "Already in PATH" -ForegroundColor Yellow
     }
     
-    # Verify installation and exit
+    # Verify installation and check hash
     Write-Host "Verifying existing installation..." -ForegroundColor Cyan
     try {
         Write-Host "Executing: weget --version" -ForegroundColor Magenta
         $version = weget --version 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "weget is ready to use" -ForegroundColor Green
-            exit 0
+            # Calculate hash of existing binary
+            $existingHash = Get-FileHashValue (Join-Path $installPath "weget.exe")
+            
+            # Fetch the latest binary URL and calculate its hash
+            $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
+            $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
+            
+            # Download the new binary to a temporary location
+            $tempExeDestination = Join-Path $installPath "weget_temp.exe"
+            Invoke-WebRequest -Uri $binaryUrl -OutFile $tempExeDestination -ErrorAction Stop
+            
+            # Calculate hash of the downloaded binary
+            $newHash = Get-FileHashValue $tempExeDestination
+            
+            # Compare hashes
+            if ($existingHash -ne $newHash) {
+                Write-Host "New version detected. Updating weget..." -ForegroundColor Green
+                Move-Item -Path $tempExeDestination -Destination (Join-Path $installPath "weget.exe") -Force
+            } else {
+                Write-Host "Existing installation is up to date." -ForegroundColor Green
+                Remove-Item $tempExeDestination -Force
+                exit 0
+            }
         } else {
             Write-Host "Existing installation verification failed" -ForegroundColor Red
             exit 1

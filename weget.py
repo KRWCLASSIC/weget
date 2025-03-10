@@ -4,7 +4,9 @@ import subprocess
 import sys
 import shutil
 from typing import Tuple, Optional, List
-import re
+
+# Define the version number at the top of the file
+VERSION = "0.3"  # Update this value to change the version number
 
 MULTI_PACKAGE_COMMANDS = {
     'install': 'Installing',
@@ -181,7 +183,7 @@ def handle_multi_package(packages: List[str], command: str, output_path: Optiona
 
 def show_help():
     """Show concise help message focusing on extended capabilities."""
-    print("weget - winget enhancement wrapper")
+    print(f"weget {VERSION} - winget enhancement wrapper")
     print("\nFeatures:")
     print("  • Multi-package operations")
     print("  • Custom download paths (-o, --output)          | \"weget download\" exclusive")
