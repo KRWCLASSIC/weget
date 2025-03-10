@@ -24,6 +24,11 @@ iwr weget.krwclassic.com | iex
 - interactive update mode (choose on run what to update)
 - repo-based updates (simillar to Clink)
 
+to fix (installer):
+
+- THE "C"
+- add antivirus exception? its getting ridiculus now bro
+
 ## Building
 
 Required:

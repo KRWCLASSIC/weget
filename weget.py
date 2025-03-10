@@ -6,7 +6,7 @@ import shutil
 from typing import Tuple, Optional, List
 
 # Define the version number at the top of the file
-VERSION = "0.3"  # Update this value to change the version number
+VERSION = "0.3.1"  # Update this value to change the version number
 
 MULTI_PACKAGE_COMMANDS = {
     'install': 'Installing',
@@ -165,11 +165,22 @@ def handle_multi_package(packages: List[str], command: str, output_path: Optiona
                         failed_packages.append(package)
                 
                 # Remove the downloaded folder after running the installer
-                try:
-                    shutil.rmtree(download_folder)
-                except Exception as e:
-                    print(f"Error removing downloaded folder: {str(e)}")
-                    failed_packages.append(package)
+                if not archive:
+                    if os.path.exists(download_folder):  # Check if the folder exists before removing
+                        try:
+                            shutil.rmtree(download_folder)
+                        except Exception as e:
+                            print(f"Error removing downloaded folder: {str(e)}")
+                            failed_packages.append(package)
+                    else:
+                        if os.path.exists(target_folder):  # Check if the folder exists before removing
+                            try:
+                                shutil.rmtree(target_folder)
+                            except Exception as e:
+                                print(f"Error removing downloaded folder: {str(e)}")
+                                failed_packages.append(package)  
+                        else:
+                            print(f"Downloaded folder does not exist: {target_folder}")
             else:
                 failed_packages.append(package)
     
