@@ -1,16 +1,3 @@
-# iwr weget.krwclassic.com | iex 
-
-# Simple script that will install weget as system or user (depending on permissions) and add it to path.
-# My website is redirecting traffic to github, so script is synced no matter what.
-
-# Add a function to calculate the hash of a file
-function Get-FileHashValue {
-    param (
-        [string]$filePath
-    )
-    return (Get-FileHash -Path $filePath -Algorithm SHA256).Hash
-}
-
 # Script version
 $scriptVersion = "v1.5.1"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
@@ -19,6 +6,12 @@ Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
 $userPath = Join-Path $env:APPDATA "KRWCLASSIC\weget"
 $adminPath = Join-Path ${env:ProgramFiles} "KRWCLASSIC\weget"
 $installPath = ""
+
+# Add a function to calculate the hash of a file
+function Get-FileHashValue {
+    param ([string]$filePath)
+    return (Get-FileHash -Path $filePath -Algorithm SHA256).Hash
+}
 
 # Function to check admin privileges
 function Test-Admin {
@@ -36,49 +29,39 @@ if (Test-Admin) {
     Write-Host "Installing weget for current user to $installPath" -ForegroundColor Cyan
 }
 
+# Ensure the installation path is set
+if ([string]::IsNullOrEmpty($installPath)) {
+    Write-Host "Error: Install path is empty!" -ForegroundColor Red
+    exit 1
+}
+
 # Check if already installed in any path
 $existingPaths = @($userPath, $adminPath) | Where-Object { Test-Path (Join-Path $_ "weget.exe") }
 if ($existingPaths) {
     Write-Host "weget is already installed at: $($existingPaths -join ', ')" -ForegroundColor Yellow
     $installPath = $existingPaths[0]  # Use the first found path
-    
-    # Check if already in PATH
-    $currentPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Process)
-    if ($currentPath -notlike "*$installPath*") {
-        Write-Host "Adding $installPath to PATH" -ForegroundColor Green
-        [System.Environment]::SetEnvironmentVariable("Path", "$currentPath;$installPath", [System.EnvironmentVariableTarget]::Process)
-    } else {
-        Write-Host "Already in PATH" -ForegroundColor Yellow
+} else {
+    # Create directory if it does not exist
+    if (!(Test-Path $installPath)) {
+        Write-Host "Creating installation directory: $installPath" -ForegroundColor Green
+        New-Item -ItemType Directory -Path $installPath -Force | Out-Null
     }
-    
-    # Verify installation and check hash
+}
+
+# Verify installation
+$wegetExePath = Join-Path $installPath "weget.exe"
+Write-Host "Expected weget.exe path: $wegetExePath" -ForegroundColor Magenta
+if (Test-Path $wegetExePath) {
     Write-Host "Verifying existing installation..." -ForegroundColor Cyan
     try {
-        # Ensure the path to weget.exe is valid
-        $wegetExePath = Join-Path $installPath "weget.exe"
-        if (-Not (Test-Path $wegetExePath)) {
-            Write-Host "weget.exe not found at $wegetExePath" -ForegroundColor Red
-            exit 1
-        }
-
-        Write-Host "Executing: weget --version" -ForegroundColor Magenta
-        $version = & $wegetExePath --version 2>&1  # Use call operator to execute
+        $version = & $wegetExePath --version 2>&1
         if ($LASTEXITCODE -eq 0) {
-            # Calculate hash of existing binary
             $existingHash = Get-FileHashValue $wegetExePath
-            
-            # Fetch the latest binary URL and calculate its hash
             $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
             $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
-            
-            # Download the new binary to a temporary location
             $tempExeDestination = Join-Path $installPath "weget_temp.exe"
             Invoke-WebRequest -Uri $binaryUrl -OutFile $tempExeDestination -ErrorAction Stop
-            
-            # Calculate hash of the downloaded binary
             $newHash = Get-FileHashValue $tempExeDestination
-            
-            # Compare hashes
             if ($existingHash -ne $newHash) {
                 Write-Host "New version detected. Updating weget..." -ForegroundColor Green
                 Move-Item -Path $tempExeDestination -Destination $wegetExePath -Force
@@ -96,50 +79,28 @@ if ($existingPaths) {
         exit 1
     }
 } else {
-    # Create directory if not exists
-    if (!(Test-Path $installPath)) {
-        Write-Host "Creating installation directory: $installPath" -ForegroundColor Green
-        New-Item -ItemType Directory -Path $installPath -Force | Out-Null
-    }
+    Write-Host "weget.exe not found. Proceeding with installation..." -ForegroundColor Yellow
 }
 
-# Ensure the installation path exists
-if (!(Test-Path $installPath)) {
-    Write-Host "Failed to create installation directory: $installPath" -ForegroundColor Red
-    exit 1
-}
-
-# Fetch the latest binary URL
+# Fetch the latest binary URL and install
 try {
     $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
     $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
-    
-    # Validate binary URL
     if ([string]::IsNullOrEmpty($binaryUrl)) {
         Write-Host "Failed to get binary URL" -ForegroundColor Red
         exit 1
     }
-    
-    # Download `weget.exe`
     $exeDestination = Join-Path $installPath "weget.exe"
     Write-Host "Downloading weget to: $exeDestination" -ForegroundColor Cyan
-    
-    # Ensure the parent directory exists
-    $parentDir = Split-Path $exeDestination -Parent
-    if (!(Test-Path $parentDir)) {
-        New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
-    }
-    
     Invoke-WebRequest -Uri $binaryUrl -OutFile $exeDestination -ErrorAction Stop
 } catch {
     Write-Host "Failed to download weget: $_" -ForegroundColor Red
     exit 1
 }
 
-# Add to PATH (with duplicate check)
+# Add to PATH
 $envPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
 $userEnvPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-
 if (Test-Admin) {
     if ($envPath -notlike "*$installPath*") {
         Write-Host "Adding to system PATH" -ForegroundColor Green
@@ -161,7 +122,5 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";
 
 # Final message
 Write-Host "Installation complete! weget is ready to use." -ForegroundColor Green
-
-# Keep window open
 Write-Host "Press any key to continue..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
