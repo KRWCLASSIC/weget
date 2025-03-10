@@ -89,7 +89,7 @@ def run_winget(args: list) -> Tuple[int, Optional[str]]:
         print(f"Error running winget: {str(e)}")
         return 1, None
 
-def handle_multi_package(packages: List[str], command: str, output_path: Optional[str] = None, archive: bool = False) -> int:
+def handle_multi_package(packages: List[str], command: str, output_path: Optional[str] = None, archive: bool = False, run_installer: bool = False) -> int:
     """
     Handle processing of multiple packages sequentially.
     
@@ -98,6 +98,7 @@ def handle_multi_package(packages: List[str], command: str, output_path: Optiona
         command: The command to use (install/upgrade/download)
         output_path: Optional path for downloaded files
         archive: Boolean indicating whether to archive downloaded files
+        run_installer: Boolean indicating whether to run the installer after downloading
         
     Returns:
         int: 0 if all operations succeeded, 1 if any failed
@@ -145,6 +146,28 @@ def handle_multi_package(packages: List[str], command: str, output_path: Optiona
                     except Exception as e:
                         print(f"Error during archiving or cleanup: {str(e)}")  # Debugging output
                         failed_packages.append(package)
+            
+                # Run the installer if the run option is set
+                if run_installer:
+                    try:
+                        # Find and run the first executable file found in the download folder
+                        for item in os.listdir(download_folder):
+                            item_path = os.path.join(download_folder, item)
+                            if item.endswith('.exe') or item.endswith('.msi'):
+                                subprocess.run([item_path], check=True)
+                                break
+                        else:
+                            print(f"No executable found in {download_folder} to run.")
+                    except Exception as e:
+                        print(f"Error running installer: {str(e)}")
+                        failed_packages.append(package)
+                
+                # Remove the downloaded folder after running the installer
+                try:
+                    shutil.rmtree(download_folder)
+                except Exception as e:
+                    print(f"Error removing downloaded folder: {str(e)}")
+                    failed_packages.append(package)
             else:
                 failed_packages.append(package)
     
@@ -163,10 +186,12 @@ def show_help():
     print("  • Multi-package operations")
     print("  • Custom download paths (-o, --output)          | \"weget download\" exclusive")
     print("  • Archive downloaded installers (-a, --archive) | \"weget download\" exclusive")
+    print("  • Run installer after download (-r, --run)      | \"weget download\" exclusive")
     print("\nExamples:")
     print("  weget install pkg1 pkg2 pkg3")
     print("  weget download pkg1 -o C:\\path\\to\\dir")
     print("  weget download pkg1 -a")
+    print("  weget download pkg1 -r")
     print("\nInfo:")
     print("  To get winget help, type \"weget -h\" or other common help argument.")
 
@@ -181,8 +206,9 @@ def parse_args() -> Tuple[str, List[str], Optional[str], bool, bool]:
     output_path = None
     packages = []
     archive_download = False  # New variable to track archive option
+    run_installer = False  # New variable to track run option
     
-    # Look for -o/--output and -a/--archive options
+    # Look for -o/--output, -a/--archive, and -r/--run options
     i = 1
     while i < len(args):
         if args[i] in ['-o', '--output']:
@@ -195,11 +221,14 @@ def parse_args() -> Tuple[str, List[str], Optional[str], bool, bool]:
         elif args[i] in ['-a', '--archive'] and command == 'download':
             archive_download = True  # New variable to track archive option
             i += 1
+        elif args[i] in ['-r', '--run'] and command == 'download':
+            run_installer = True  # New variable to track run option
+            i += 1
         else:
             packages.append(args[i])
             i += 1
             
-    return command, packages, output_path, archive_download
+    return command, packages, output_path, archive_download, run_installer
 
 def main():
     """Main entry point for the application."""
@@ -209,7 +238,7 @@ def main():
         print(f"Error: {error_message}")
         return 1
     
-    command, packages, output_path, archive_download = parse_args()
+    command, packages, output_path, archive_download, run_installer = parse_args()
     command = command.lower()
     
     # Check for multi-package commands
@@ -218,7 +247,7 @@ def main():
         if output_path and command != 'download':
             print("Error: Output path can only be specified for the download command")
             return 1
-        return handle_multi_package(packages, command, output_path, archive_download)
+        return handle_multi_package(packages, command, output_path, archive_download, run_installer)
     
     # Pass all arguments directly to winget
     all_args = [command] + packages
