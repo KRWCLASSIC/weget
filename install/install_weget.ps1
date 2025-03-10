@@ -1,6 +1,9 @@
 # Script version
-$scriptVersion = "v1.5.1"
+$scriptVersion = "v1.5.2"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
+
+Write-Host "Sorry installer temporarly disabled!"
+exit
 
 # Define installation paths
 $userPath = Join-Path $env:APPDATA "KRWCLASSIC\weget"
