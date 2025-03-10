@@ -13,8 +13,8 @@ python -m nuitka ^
     --windows-company-name="KRW CLASSIC" ^
     --windows-product-name="Weget" ^
     --windows-file-description="Winget Enhancement Tool" ^
-    --windows-file-version="0.2" ^
-    --windows-product-version="0.2" ^
+    --windows-file-version="0.3" ^
+    --windows-product-version="0.3" ^
     weget.py
 
 echo Build complete!
