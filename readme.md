@@ -25,6 +25,7 @@ iwr weget.krwclassic.com | iex
 - repo-based updates (simillar to Clink)
 - add weget to path function yes
 - dryparse and fix parsing
+- `download --run/-r` argument due to `winget install` doesnt run GUI installer
 
 ## Building
 
