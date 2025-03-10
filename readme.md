@@ -26,6 +26,8 @@ iwr weget.krwclassic.com | iex
 - add weget to path function yes
 - dryparse and fix parsing
 - `download --run/-r` argument due to `winget install` doesnt run GUI installer
+- `weget reinstall` for error: ```Found an existing package already installed. Trying to upgrade the installed package...
+A newer version was found, but the install technology is different from the current version installed. Please uninstall the package and install the newer version.```, will do `..uninstall & weget install` on the package.
 
 ## Building
 
