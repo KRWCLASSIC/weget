@@ -23,8 +23,6 @@ iwr weget.krwclassic.com | iex
 - Multithreaded download/install/upgrade?
 - interactive update mode (choose on run what to update)
 - repo-based updates (simillar to Clink)
-- add weget to path function yes
-- dryparse and fix parsing
 
 ## Building
 
