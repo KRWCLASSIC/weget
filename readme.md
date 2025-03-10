@@ -1,4 +1,4 @@
-# Weget `0.3`
+# Weget `0.3.1`
 
 Weget is winget wrapper with support with multidownload, output paths and much more!
 
