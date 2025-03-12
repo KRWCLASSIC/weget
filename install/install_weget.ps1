@@ -1,9 +1,6 @@
 # Script version
-$scriptVersion = "v1.5.2"
+$scriptVersion = "v1.6"
 Write-Host "weget installer $scriptVersion" -ForegroundColor Cyan
-
-Write-Host "Sorry installer temporarly disabled!"
-exit
 
 # Define installation paths
 $userPath = Join-Path $env:APPDATA "KRWCLASSIC\weget"
@@ -42,7 +39,7 @@ if ([string]::IsNullOrEmpty($installPath)) {
 $existingPaths = @($userPath, $adminPath) | Where-Object { Test-Path (Join-Path $_ "weget.exe") }
 if ($existingPaths) {
     Write-Host "weget is already installed at: $($existingPaths -join ', ')" -ForegroundColor Yellow
-    $installPath = $existingPaths[0]  # Use the first found path
+    $installPath = $existingPaths
 } else {
     # Create directory if it does not exist
     if (!(Test-Path $installPath)) {
@@ -56,26 +53,24 @@ $wegetExePath = Join-Path $installPath "weget.exe"
 Write-Host "Expected weget.exe path: $wegetExePath" -ForegroundColor Magenta
 if (Test-Path $wegetExePath) {
     Write-Host "Verifying existing installation..." -ForegroundColor Cyan
+}
+
+# Verify existing installation
+if (Test-Path $wegetExePath) {
     try {
-        $version = & $wegetExePath --version 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            $existingHash = Get-FileHashValue $wegetExePath
-            $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
-            $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
-            $tempExeDestination = Join-Path $installPath "weget_temp.exe"
-            Invoke-WebRequest -Uri $binaryUrl -OutFile $tempExeDestination -ErrorAction Stop
-            $newHash = Get-FileHashValue $tempExeDestination
-            if ($existingHash -ne $newHash) {
-                Write-Host "New version detected. Updating weget..." -ForegroundColor Green
-                Move-Item -Path $tempExeDestination -Destination $wegetExePath -Force
-            } else {
-                Write-Host "Existing installation is up to date." -ForegroundColor Green
-                Remove-Item $tempExeDestination -Force
-                exit 0
-            }
+        $existingHash = Get-FileHashValue $wegetExePath
+        $latestUrl = "https://raw.githubusercontent.com/KRWCLASSIC/weget/refs/heads/main/install/latest_release.txt"
+        $binaryUrl = Invoke-WebRequest -Uri $latestUrl -UseBasicParsing | Select-Object -ExpandProperty Content
+        $tempExeDestination = Join-Path $installPath "weget_temp.exe"
+        Invoke-WebRequest -Uri $binaryUrl -OutFile $tempExeDestination -ErrorAction Stop
+        $newHash = Get-FileHashValue $tempExeDestination
+        if ($existingHash -ne $newHash) {
+            Write-Host "New version detected. Updating weget..." -ForegroundColor Green
+            Move-Item -Path $tempExeDestination -Destination $wegetExePath -Force
         } else {
-            Write-Host "Existing installation verification failed" -ForegroundColor Red
-            exit 1
+            Write-Host "Existing installation is up to date." -ForegroundColor Green
+            Remove-Item $tempExeDestination -Force
+            exit 0
         }
     } catch {
         Write-Host "Failed to verify existing installation: $_" -ForegroundColor Red

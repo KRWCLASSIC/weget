@@ -26,7 +26,6 @@ iwr weget.krwclassic.com | iex
 
 to fix (installer):
 
-- THE "C"
 - add antivirus exception? its getting ridiculus now bro
 
 ## Building
