@@ -1,5 +1,7 @@
 # Weget `0.3.1`
 
+> For now project has so much bugs i would not recommend using it for anything more than added features, replacing it with winget might be a bad idea...
+
 Weget is winget wrapper with support with multidownload, output paths and much more!
 
 i need to rewrite this readme btw
