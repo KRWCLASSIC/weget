@@ -1,4 +1,4 @@
-# Weget `0.4.0`
+# Weget `0.4`
 
 > For now project has so much bugs i would not recommend using it for anything more than added features, replacing it with winget might be a bad idea...
 

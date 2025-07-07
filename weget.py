@@ -5,7 +5,7 @@ import sys
 import os
 
 # Define the version number at the top of the file
-VERSION = "0.4.0"  # Update this value to change the version number
+VERSION = "0.4"  # Update this value to change the version number
 
 MULTI_PACKAGE_COMMANDS = {
     'install': 'Installing',
