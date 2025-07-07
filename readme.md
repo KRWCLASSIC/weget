@@ -1,4 +1,4 @@
-# Weget `0.3.1`
+# Weget `0.4.0`
 
 > For now project has so much bugs i would not recommend using it for anything more than added features, replacing it with winget might be a bad idea...
 
@@ -6,29 +6,29 @@ Weget is winget wrapper with support with multidownload, output paths and much m
 
 i need to rewrite this readme btw
 
-## Instalation
+## Installation
 
-To install weget, open PowerShell and run the following command:
+To install weget (using [IronShell](https://github.com/KRWCLASSIC/IronShell) server), open PowerShell and run the following command:
 
 ```powershell
-iwr weget.krwclassic.com | iex
+iwr utils.krwclassic.com/install/weget | iex
 ```
 
 ## Features
 
-- fill later lol, and make this img smaller fr \/
-
-![weget help preview](https://github.com/user-attachments/assets/e48391c8-1a53-4df1-911c-c56102e39d3a)
+- Multi-package installation: Install multiple packages with a single command (semi-multithreaded, each in a new window)
+- Custom output paths: Specify installation directories for packages
 
 ## TODO
 
-- Multithreaded download/install/upgrade?
 - interactive update mode (choose on run what to update)
-- repo-based updates (simillar to Clink)
+- find and fix all bugs (pokemon ahh)
+- fix multipackage with arguments crashing
 
 to fix (installer):
 
-- add antivirus exception? its getting ridiculus now bro
+- add antivirus exception? its getting ridiculus now bro (first run of weget) ↓
+- might fix via IronShell side by adding nonbinary way of installing my apps (running .py via aliases or scripts in PATH)
 
 ## Building
 

@@ -1,16 +1,14 @@
-import os
-import platform
-import subprocess
-import sys
-import shutil
 from typing import Tuple, Optional, List
+import subprocess
+import platform
+import sys
+import os
 
 # Define the version number at the top of the file
-VERSION = "0.3.1"  # Update this value to change the version number
+VERSION = "0.4.0"  # Update this value to change the version number
 
 MULTI_PACKAGE_COMMANDS = {
     'install': 'Installing',
-    'upgrade': 'Upgrading',
     'download': 'Downloading'
 }
 
@@ -93,102 +91,92 @@ def run_winget(args: list) -> Tuple[int, Optional[str]]:
 
 def handle_multi_package(packages: List[str], command: str, output_path: Optional[str] = None, archive: bool = False, run_installer: bool = False) -> int:
     """
-    Handle processing of multiple packages sequentially.
-    
-    Args:
-        packages: List of package IDs to process
-        command: The command to use (install/upgrade/download)
-        output_path: Optional path for downloaded files
-        archive: Boolean indicating whether to archive downloaded files
-        run_installer: Boolean indicating whether to run the installer after downloading
-        
-    Returns:
-        int: 0 if all operations succeeded, 1 if any failed
+    Handle processing of multiple packages by launching a new terminal window for each (install/download only).
+    For a single package, run in the current window.
     """
+    import shlex
     total_packages = len(packages)
     failed_packages = []
-    
-    # Convert output path to absolute if specified
     if output_path:
         output_path = os.path.abspath(output_path)
         os.makedirs(output_path, exist_ok=True)
-    
-    for idx, package in enumerate(packages, 1):
-        if total_packages > 1:
-            print(f"\n[{idx}/{total_packages}] {package}")
+    # Single package: run in current window
+    if total_packages == 1:
+        package = packages[0]
         result, _ = run_winget([command, package])
-        
         if result != 0:
-            failed_packages.append(package)
-        elif command == 'download':
+            print(f"Failed to {command} {package}")
+            return 1
+        # For download, handle output, archive, run logic after download
+        if command == 'download':
             download_folder = find_latest_download(package)
             if download_folder:
-                # If output_path is specified, move the folder; otherwise, use the download folder directly
                 if output_path:
                     target_folder = os.path.join(output_path, os.path.basename(download_folder))
                     try:
                         if os.path.exists(target_folder):
+                            import shutil
                             shutil.rmtree(target_folder)
+                        import shutil
                         shutil.move(download_folder, target_folder)
                         print(f"Installer moved: {target_folder}")
                     except Exception as e:
-                        failed_packages.append(package)
+                        print(f"Error moving installer: {e}")
+                        return 1
                 else:
                     target_folder = download_folder
-                
-                # Archive the folder if the archive option is set
                 if archive:
-                    print(f"Attempting to archive installer: {target_folder}")  # Winget-style output with folder
+                    print(f"Attempting to archive installer: {target_folder}")
                     archive_folder = f"{target_folder}.zip"
                     try:
+                        import shutil
                         shutil.make_archive(archive_folder[:-4], 'zip', target_folder)
-                        print(f"Archived installer: {archive_folder}")  # Winget-style output with archive path
-                        # Remove the original folder after successful archiving
+                        print(f"Archived installer: {archive_folder}")
+                        import shutil
                         shutil.rmtree(target_folder)
                     except Exception as e:
-                        print(f"Error during archiving or cleanup: {str(e)}")  # Debugging output
-                        failed_packages.append(package)
-            
-                # Run the installer if the run option is set
-                if run_installer:
+                        print(f"Error during archiving or cleanup: {str(e)}")
+                        return 1
+                if run_installer and not archive:
                     try:
-                        # Find and run the first executable file found in the download folder
-                        for item in os.listdir(download_folder):
-                            item_path = os.path.join(download_folder, item)
+                        for item in os.listdir(target_folder):
+                            item_path = os.path.join(target_folder, item)
                             if item.endswith('.exe') or item.endswith('.msi'):
                                 subprocess.run([item_path], check=True)
                                 break
                         else:
-                            print(f"No executable found in {download_folder} to run.")
+                            print(f"No executable found in {target_folder} to run.")
                     except Exception as e:
                         print(f"Error running installer: {str(e)}")
-                        failed_packages.append(package)
-                
-                # Remove the downloaded folder after running the installer
+                        return 1
+                # Remove the downloaded folder after running the installer if not archived
                 if not archive:
-                    if os.path.exists(download_folder):  # Check if the folder exists before removing
-                        try:
-                            shutil.rmtree(download_folder)
-                        except Exception as e:
-                            print(f"Error removing downloaded folder: {str(e)}")
-                            failed_packages.append(package)
-                    else:
-                        if os.path.exists(target_folder):  # Check if the folder exists before removing
-                            try:
-                                shutil.rmtree(target_folder)
-                            except Exception as e:
-                                print(f"Error removing downloaded folder: {str(e)}")
-                                failed_packages.append(package)  
-                        else:
-                            print(f"Downloaded folder does not exist: {target_folder}")
+                    try:
+                        import shutil
+                        shutil.rmtree(target_folder)
+                    except Exception as e:
+                        print(f"Error removing downloaded folder: {str(e)}")
+                        return 1
             else:
-                failed_packages.append(package)
-    
+                print(f"Download folder not found for {package}")
+                return 1
+        return 0
+    # Multi-package: open new windows
+    for idx, package in enumerate(packages, 1):
+        print(f"\nLaunching [{idx}/{total_packages}] {package} in new window...")
+        if command == "download" and output_path:
+            cmdline = f'start cmd /k "winget {command} {shlex.quote(package)} && exit || pause"'
+        else:
+            cmdline = f'start cmd /k "winget {command} {shlex.quote(package)} && exit || pause"'
+        try:
+            subprocess.Popen(cmdline, shell=True)
+        except Exception as e:
+            print(f"Failed to launch window for {package}: {e}")
+            failed_packages.append(package)
     if failed_packages:
-        if len(failed_packages) < total_packages:
-            print("\nFailed packages:")
-            for package in failed_packages:
-                print(f"- {package}")
+        print("\nFailed to launch for packages:")
+        for package in failed_packages:
+            print(f"- {package}")
         return 1
     return 0
 
@@ -196,7 +184,7 @@ def show_help():
     """Show concise help message focusing on extended capabilities."""
     print(f"weget {VERSION} - winget enhancement wrapper")
     print("\nFeatures:")
-    print("  • Multi-package operations")
+    print("  • Multi-package install/download operations (each in a new window)")
     print("  • Custom download paths (-o, --output)          | \"weget download\" exclusive")
     print("  • Archive downloaded installers (-a, --archive) | \"weget download\" exclusive")
     print("  • Run installer after download (-r, --run)      | \"weget download\" exclusive")
@@ -209,38 +197,46 @@ def show_help():
     print("  To get winget help, type \"weget -h\" or other common help argument.")
 
 def parse_args() -> Tuple[str, List[str], Optional[str], bool, bool]:
-    """Parse command line arguments in a simple way."""
+    """Parse command line arguments in any order."""
     if len(sys.argv) < 2:
         show_help()
         sys.exit(0)
-        
     args = sys.argv[1:]
     command = args[0]
     output_path = None
     packages = []
-    archive_download = False  # New variable to track archive option
-    run_installer = False  # New variable to track run option
+    archive_download = False
+    run_installer = False
+    run_flag_present = False
+    archive_flag_present = False
     
-    # Look for -o/--output, -a/--archive, and -r/--run options
     i = 1
     while i < len(args):
-        if args[i] in ['-o', '--output']:
+        arg = args[i]
+        if arg in ['-o', '--output']:
             if i + 1 < len(args):
                 output_path = args[i + 1]
                 i += 2
             else:
                 print("Error: Output path not specified after -o/--output")
                 sys.exit(1)
-        elif args[i] in ['-a', '--archive'] and command == 'download':
-            archive_download = True  # New variable to track archive option
+        elif arg in ['-a', '--archive'] and command == 'download':
+            archive_download = True
+            archive_flag_present = True
             i += 1
-        elif args[i] in ['-r', '--run'] and command == 'download':
-            run_installer = True  # New variable to track run option
+        elif arg in ['-r', '--run'] and command == 'download':
+            run_installer = True
+            run_flag_present = True
             i += 1
+        elif arg.startswith('-'):
+            print(f"Unknown option: {arg}")
+            sys.exit(1)
         else:
-            packages.append(args[i])
+            packages.append(arg)
             i += 1
-            
+    if archive_flag_present and run_flag_present:
+        print("Warning: --run is ignored when --archive is used. Only archiving will be performed.")
+        run_installer = False
     return command, packages, output_path, archive_download, run_installer
 
 def main():
